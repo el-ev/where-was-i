@@ -21,6 +21,17 @@ tokens.post('/', authMiddleware('create_token'), async (c) => {
 
     const { expires, expires_in_days, permissions } = validation.data;
 
+    const { results: selfTokenResults } = await c.env.DB.prepare(
+        'SELECT expires_at FROM tokens WHERE token_hash = ?'
+    ).bind(await sha256((c.req.header('Authorization') || '').substring(7))).all();
+    const selfToken = selfTokenResults && selfTokenResults[0] ? selfTokenResults[0] : null;
+    if (selfToken && selfToken.expires_at !== null) {
+        const maxExpires = Number(selfToken.expires_at) - Math.floor(Date.now() / 1000);
+        if (!expires || expires_in_days * 24 * 60 * 60 > maxExpires) {
+            return c.json({ error: 'Cannot create a token that lasts longer.' }, 400);
+        }
+    }
+
     const newToken = generateToken();
     const tokenHash = await sha256(newToken);
 
