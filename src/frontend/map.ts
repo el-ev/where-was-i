@@ -68,8 +68,8 @@ async function loadMap() {
         const openControlsButton = document.getElementById('open-controls-button') as HTMLElement | null;
         if (openControlsButton) openControlsButton.style.display = 'block';
 
-        const first = locations[0];
-        map = leaflet.map('map').setView([first.latitude, first.longitude], 16);
+        const last = locations[locations.length - 1];
+        map = leaflet.map('map').setView([last.latitude, last.longitude], 16);
         leaflet.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 25,
             attribution: '© OpenStreetMap contributors',
