@@ -21,7 +21,6 @@ async function loadMap() {
         return;
     }
 
-    // Persist token
     try { localStorage.setItem(STORAGE_KEY, token); } catch {}
 
     try {
@@ -48,6 +47,7 @@ async function loadMap() {
         const first = locations[0];
         map = L.map('map').setView([first.latitude, first.longitude], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 25,
             attribution: '© OpenStreetMap contributors',
         }).addTo(map);
 
