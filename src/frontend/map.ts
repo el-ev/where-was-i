@@ -21,7 +21,7 @@ async function loadMap() {
         return;
     }
 
-    try { localStorage.setItem(STORAGE_KEY, token); } catch {}
+    try { localStorage.setItem(STORAGE_KEY, token); } catch { }
 
     try {
         const response = await fetch('/locations', {
@@ -54,6 +54,26 @@ async function loadMap() {
         const latLngs: any[] = locations.map((loc: any) => [Number(loc.latitude), Number(loc.longitude)] as [number, number]);
         const polyline = L.polyline(latLngs, { color: 'blue' }).addTo(map);
 
+        polyline.on('click', function (e: any) {
+            const latlng = e.latlng;
+            let minIdx = 0;
+            let minDist = Infinity;
+            latLngs.forEach((pt, idx) => {
+                const dist = Math.sqrt(Math.pow(pt[0] - latlng.lat, 2) + Math.pow(pt[1] - latlng.lng, 2));
+                if (dist < minDist) {
+                    minDist = dist;
+                    minIdx = idx;
+                }
+            });
+            const info = locations[minIdx];
+            L.popup()
+                .setLatLng([info.latitude, info.longitude])
+                .setContent(
+                    `Point ${info.id}: [${info.latitude}, ${info.longitude}]<br>` +
+                    (info.timestamp ? `Time: ${new Date(info.timestamp * 1000).toLocaleString()}<br>` : '')
+                )
+                .openOn(map);
+        });
         L.marker(latLngs[0]).addTo(map).bindPopup('Start');
         L.marker(latLngs[latLngs.length - 1]).addTo(map).bindPopup('End');
 
