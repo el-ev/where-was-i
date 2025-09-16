@@ -16,6 +16,9 @@ locations.get('/', authMiddleware('read'), async (c) => {
     let queryString = 'SELECT * FROM locations';
     const whereClauses: string[] = [];
 
+    if (locationQueryParams.data.startId !== undefined) {
+        whereClauses.push(`id >= ${locationQueryParams.data.startId}`);
+    }
     if (locationQueryParams.data.startTime !== undefined) {
         const startTimestamp = Math.floor(locationQueryParams.data.startTime.getTime() / 1000);
         whereClauses.push(`timestamp >= ${startTimestamp}`);

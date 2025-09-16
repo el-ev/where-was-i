@@ -74,6 +74,7 @@ const parseBbox = (arg: unknown): [number, number, number, number] | undefined =
 
 export const locationQuerySchema = z
     .object({
+        startId: z.preprocess(parseNonNegativeNumber, z.number().int().min(0).optional()),
         startTime: z.preprocess(parseDate, z.date().optional()),
         endTime: z.preprocess(parseDate, z.date().optional()),
         clusterMaxDist: z.preprocess(parseNonNegativeNumber, z.number().min(0).optional()),

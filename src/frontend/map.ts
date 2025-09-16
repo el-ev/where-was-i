@@ -25,7 +25,7 @@ function showError(message: string) {
     dom.errorMessage.style.display = 'block';
 }
 
-function getApiUrl() {
+function getApiUrl(startId: number | null = null): string {
     const startTime = dom.startTime.value;
     const endTime = dom.endTime.value;
     const limit = dom.limit.value;
@@ -33,6 +33,7 @@ function getApiUrl() {
     const bbox = dom.bbox.value;
 
     const params = new URLSearchParams();
+    if (startId !== null) params.set('startId', String(startId));
     if (startTime) params.set('startTime', new Date(startTime).toISOString());
     if (endTime) params.set('endTime', new Date(endTime).toISOString());
     if (limit) params.set('limit', limit);
@@ -84,8 +85,11 @@ async function loadMap() {
         }).addTo(map);
 
         locationsCache = locations;
-        await refresh();
+        await refresh(false);
 
+        setInterval(() => {
+            refresh(false);
+        }, 120000);
     } catch (err: any) {
         showError(err?.message ?? 'Unknown error');
     }
@@ -96,8 +100,7 @@ let startMarker: any = null;
 let endMarker: any = null;
 let locationsCache: any[] = [];
 
-// TODO incremental fetching
-async function refresh() {
+async function refresh(triggeredByUser: boolean = false) {
     if (!map) return;
 
     try {
@@ -121,7 +124,8 @@ async function refresh() {
     if (!token) return;
 
     try {
-        const response = await fetch(getApiUrl(), {
+        const startId = triggeredByUser ? null : (locationsCache.length > 0 ? locationsCache[locationsCache.length - 1].id : null);
+        const response = await fetch(getApiUrl(startId), {
             headers: { Authorization: `Bearer ${token}` },
         });
         if (!response.ok) return;
@@ -129,8 +133,12 @@ async function refresh() {
         const locations = await response.json();
         if (!Array.isArray(locations) || locations.length === 0) return;
 
-        locationsCache = locations;
-        const latLngs = locations.map((loc: any) => [Number(loc.latitude), Number(loc.longitude)] as [number, number]);
+        if (triggeredByUser || locationsCache.length === 0) {
+            locationsCache = locations;
+        } else {
+            locationsCache = locationsCache.concat(locations.slice(1));
+        }
+        const latLngs = locationsCache.map((loc: any) => [Number(loc.latitude), Number(loc.longitude)] as [number, number]);
 
         if (currentPolyline) {
             currentPolyline.setLatLngs(latLngs);
@@ -177,10 +185,6 @@ async function refresh() {
     }
 }
 
-setInterval(() => {
-    refresh();
-}, 120000);
-
 document.addEventListener('DOMContentLoaded', () => {
     try {
         const stored = localStorage.getItem(STORAGE_KEY);
@@ -198,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (dom.refreshButton) {
         dom.refreshButton.addEventListener('click', () => {
-            refresh();
+            refresh(true);
         });
     }
 
