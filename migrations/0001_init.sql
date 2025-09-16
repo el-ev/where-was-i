@@ -1,0 +1,16 @@
+-- Migration number: 0001 	 2025-09-16T13:28:47.816Z
+
+CREATE TABLE locations (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	latitude REAL NOT NULL,
+	longitude REAL NOT NULL,
+	altitude REAL NOT NULL,
+	timestamp INTEGER NOT NULL
+);
+
+CREATE TABLE tokens (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	token_hash TEXT NOT NULL UNIQUE,
+	permissions TEXT NOT NULL,
+	expires_at INTEGER
+);
