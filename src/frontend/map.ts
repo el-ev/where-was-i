@@ -63,10 +63,10 @@ async function loadMap() {
         if (promptDiv) promptDiv.style.display = 'none';
 
         const controlsDiv = document.getElementById('controls') as HTMLElement | null;
-        if (controlsDiv) controlsDiv.style.display = 'block';
+        if (controlsDiv) controlsDiv.style.display = 'none';
 
         const openControlsButton = document.getElementById('open-controls-button') as HTMLElement | null;
-        if (openControlsButton) openControlsButton.style.display = 'none';
+        if (openControlsButton) openControlsButton.style.display = 'block';
 
         const first = locations[0];
         map = leaflet.map('map').setView([first.latitude, first.longitude], 16);
@@ -182,9 +182,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     } catch { }
 
-    const button = document.getElementById('load-button');
-    if (button) {
-        button.addEventListener('click', () => {
+    const loadButton = document.getElementById('load-button');
+    if (loadButton) {
+        loadButton.addEventListener('click', () => {
             const errorMessage = document.getElementById('error-message') as HTMLElement | null;
             if (errorMessage) errorMessage.style.display = 'none';
             loadMap();
