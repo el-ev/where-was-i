@@ -89,7 +89,7 @@ async function loadMap() {
 
         setInterval(() => {
             refresh(false);
-        }, 120000);
+        }, 60000);
     } catch (err: any) {
         showError(err?.message ?? 'Unknown error');
     }
