@@ -41,8 +41,11 @@ locations.get('/', authMiddleware('read'), async (c) => {
 
     queryString += ' ORDER BY timestamp ASC';
 
-    if (locationQueryParams.data.limit !== undefined && locationQueryParams.data.limit > 0) {
-        const limit = Math.max(0, Math.floor(Number(locationQueryParams.data.limit)));
+    const rawLimit = locationQueryParams.data.limit;
+    if (rawLimit === undefined) {
+        queryString += ' LIMIT 1000';
+    } else if (Number(rawLimit) !== 0) {
+        const limit = Math.max(1, Math.floor(Number(rawLimit)));
         queryString += ' LIMIT ' + limit;
     }
     const { results } = await c.env.DB.prepare(queryString).all<LocationRecord>();
@@ -72,6 +75,17 @@ locations.post('/', authMiddleware('write'), async (c) => {
         return c.json({ error: 'Database error', details: (e as Error).message }, 500);
     }
     return c.json({ message: 'Location added' }, 201);
+});
+
+locations.get('/last', authMiddleware('read'), async (c) => {
+    const limitParam = c.req.query('limit');
+    const limit = limitParam ? Math.max(1, Math.min(1000, Math.floor(Number(limitParam)))) : 1;
+
+    const { results } = await c.env.DB.prepare(
+        'SELECT * FROM locations ORDER BY timestamp DESC LIMIT ?'
+    ).bind(limit).all<LocationRecord>();
+
+    return c.json(results);
 });
 
 export default locations;
