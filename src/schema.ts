@@ -31,6 +31,7 @@ export const createTokenSchema = z.object({
     expires: z.boolean().default(true),
     expires_in_days: z.number().int().nonnegative().default(30),
     permissions: permissionsSchema,
+    comment: z.string().optional(),
 });
 
 export type TokenRecord = {
@@ -38,6 +39,7 @@ export type TokenRecord = {
     token_hash: string;
     permissions: Permissions;
     expires_at: number | null;
+    comment: string | null;
 }
 
 const parseDate = (arg: unknown): Date | undefined => {

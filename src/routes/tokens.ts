@@ -19,7 +19,7 @@ tokens.post('/', authMiddleware('create_token'), async (c) => {
         return c.json({ error: 'Invalid token creation data', details: validation.error.flatten() }, 400);
     }
 
-    const { expires, expires_in_days, permissions } = validation.data;
+    const { expires, expires_in_days, permissions, comment } = validation.data;
 
     const selfToken = await c.env.DB.prepare(
         'SELECT expires_at FROM tokens WHERE token_hash = ?'
@@ -41,13 +41,23 @@ tokens.post('/', authMiddleware('create_token'), async (c) => {
 
     try {
         await c.env.DB.prepare(
-            'INSERT INTO tokens (token_hash, permissions, expires_at) VALUES (?, ?, ?)'
-        ).bind(tokenHash, JSON.stringify(permissions), expires_at).run();
+            'INSERT INTO tokens (token_hash, permissions, expires_at, comment) VALUES (?, ?, ?, ?)'
+        ).bind(tokenHash, JSON.stringify(permissions), expires_at, comment).run();
     } catch (e) {
         return c.json({ error: 'Database error', details: (e as Error).message }, 500);
     }
 
     return c.json({ success: true, token: newToken }, 201);
+});
+
+tokens.get('/', authMiddleware('create_token'), async (c) => {
+    const { results } = await c.env.DB.prepare(
+        'SELECT id, permissions, expires_at, comment FROM tokens'
+    ).all<TokenRecord>();
+
+    const allTokens = results.map(t => ({ ...t, permissions: JSON.parse(t.permissions as unknown as string) }));
+
+    return c.json(allTokens);
 });
 
 export default tokens;
