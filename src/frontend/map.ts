@@ -1,6 +1,6 @@
-const L: any = (globalThis as any).L;
+const leaflet = (globalThis as any).L as unknown as typeof import('leaflet');
 
-let map: any;
+let map: import('leaflet').Map;
 
 const STORAGE_KEY = 'apiToken';
 
@@ -45,46 +45,107 @@ async function loadMap() {
         if (promptDiv) promptDiv.style.display = 'none';
 
         const first = locations[0];
-        map = L.map('map').setView([first.latitude, first.longitude], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        map = leaflet.map('map').setView([first.latitude, first.longitude], 16);
+        leaflet.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 25,
             attribution: '© OpenStreetMap contributors',
         }).addTo(map);
 
-        const latLngs: any[] = locations.map((loc: any) => [Number(loc.latitude), Number(loc.longitude)] as [number, number]);
-        const polyline = L.polyline(latLngs, { color: 'blue' }).addTo(map);
+        locationsCache = locations;
+        await refresh();
 
-        polyline.on('click', function (e: any) {
-            const latlng = e.latlng;
-            let minIdx = 0;
-            let minDist = Infinity;
-            latLngs.forEach((pt, idx) => {
-                const dist = Math.sqrt(Math.pow(pt[0] - latlng.lat, 2) + Math.pow(pt[1] - latlng.lng, 2));
-                if (dist < minDist) {
-                    minDist = dist;
-                    minIdx = idx;
-                }
-            });
-            const info = locations[minIdx];
-            L.popup()
-                .setLatLng([info.latitude, info.longitude])
-                .setContent(
-                    `Point ${info.id}: [${info.latitude}, ${info.longitude}]<br>` +
-                    (info.timestamp ? `Time: ${new Date(info.timestamp * 1000).toLocaleString()}<br>` : '')
-                )
-                .openOn(map);
-        });
-        L.marker(latLngs[0]).addTo(map).bindPopup('Start');
-        L.marker(latLngs[latLngs.length - 1]).addTo(map).bindPopup('End');
-
-        map.fitBounds(polyline.getBounds());
     } catch (err: any) {
         showError(err?.message ?? 'Unknown error');
     }
 }
 
+let currentPolyline: any = null;
+let startMarker: any = null;
+let endMarker: any = null;
+let locationsCache: any[] = [];
+
+async function refresh() {
+    if (!map) return;
+
+    try {
+        map.eachLayer((layer: any) => {
+            if (!currentPolyline && (layer instanceof (leaflet as any).Polyline)) {
+                currentPolyline = layer;
+            }
+            if (!startMarker && (layer instanceof (leaflet as any).Marker)) {
+                const popup = layer.getPopup && layer.getPopup();
+                if (popup && popup.getContent && popup.getContent() === 'Start') startMarker = layer;
+            }
+            if (!endMarker && (layer instanceof (leaflet as any).Marker)) {
+                const popup = layer.getPopup && layer.getPopup();
+                if (popup && popup.getContent && popup.getContent() === 'End') endMarker = layer;
+            }
+        });
+    } catch {
+    }
+
+    const token = (() => { try { return localStorage.getItem(STORAGE_KEY) || ''; } catch { return ''; } })();
+    if (!token) return;
+
+    try {
+        const response = await fetch('/locations', {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) return;
+
+        const locations = await response.json();
+        if (!Array.isArray(locations) || locations.length === 0) return;
+
+        locationsCache = locations;
+        const latLngs = locations.map((loc: any) => [Number(loc.latitude), Number(loc.longitude)] as [number, number]);
+
+        if (currentPolyline) {
+            currentPolyline.setLatLngs(latLngs);
+        } else {
+            currentPolyline = leaflet.polyline(latLngs, { color: 'blue' }).addTo(map);
+            currentPolyline.on('click', function (e: any) {
+                const latlng = e.latlng;
+                let minIdx = 0;
+                let minDist = Infinity;
+                locationsCache.forEach((info, idx) => {
+                    const pt = [Number(info.latitude), Number(info.longitude)];
+                    const dist = Math.hypot(pt[0] - latlng.lat, pt[1] - latlng.lng);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        minIdx = idx;
+                    }
+                });
+                const info = locationsCache[minIdx];
+                leaflet.popup()
+                    .setLatLng([info.latitude, info.longitude])
+                    .setContent(
+                        `Point ${info.id}: [${info.latitude}, ${info.longitude}]<br>` +
+                        (info.timestamp ? `Time: ${new Date(info.timestamp * 1000).toLocaleString()}<br>` : '')
+                    )
+                    .openOn(map);
+            });
+        }
+
+        if (latLngs.length > 0) {
+            if (startMarker) {
+                startMarker.setLatLng(latLngs[0]);
+            } else {
+                startMarker = leaflet.marker(latLngs[0]).addTo(map).bindPopup('Start');
+            }
+
+            const last = latLngs.length - 1;
+            if (endMarker) {
+                endMarker.setLatLng(latLngs[last]);
+            } else {
+                endMarker = leaflet.marker(latLngs[last]).addTo(map).bindPopup('End');
+            }
+        }
+    } catch {
+    }
+}
+
 setInterval(() => {
-    loadMap();
+    refresh();
 }, 120000);
 
 document.addEventListener('DOMContentLoaded', () => {

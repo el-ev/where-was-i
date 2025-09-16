@@ -82,7 +82,6 @@
 
 				if (token) {
 					try { localStorage.setItem('apiToken', token); } catch (_) {}
-					// Clean token from the URL
 					url.searchParams.delete('token');
 					if (hashToken) url.hash = '';
 					history.replaceState({}, '', url.toString());

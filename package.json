@@ -9,6 +9,7 @@
 		"cf-typegen": "wrangler types"
 	},
 	"devDependencies": {
+		"@types/leaflet": "^1.9.20",
 		"typescript": "^5.5.2",
 		"wrangler": "^4.37.0"
 	},
