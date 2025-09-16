@@ -83,6 +83,10 @@ async function loadMap() {
     }
 }
 
+setInterval(() => {
+    loadMap();
+}, 120000);
+
 document.addEventListener('DOMContentLoaded', () => {
     try {
         const stored = localStorage.getItem(STORAGE_KEY);
@@ -90,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const input = document.getElementById('token-input') as HTMLInputElement | null;
             if (input) input.value = stored;
         }
-    } catch {}
+    } catch { }
 
     const button = document.getElementById('load-button');
     if (button) {
