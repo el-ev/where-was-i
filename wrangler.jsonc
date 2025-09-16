@@ -21,6 +21,6 @@
 	],
 	"build": {
 		"command": "sh -c \"tsc -p tsconfig.frontend.json || true\"",
-		"watch_dir": "src/frontend"
+		"watch_dir": "src"
 	}
 }
