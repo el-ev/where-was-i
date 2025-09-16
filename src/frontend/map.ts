@@ -4,19 +4,33 @@ let map: import('leaflet').Map;
 
 const STORAGE_KEY = 'apiToken';
 
+const dom = {
+    errorMessage: document.getElementById('error-message') as HTMLElement,
+    startTime: document.getElementById('startTime') as HTMLInputElement,
+    endTime: document.getElementById('endTime') as HTMLInputElement,
+    limit: document.getElementById('limit') as HTMLInputElement,
+    clusterMaxDist: document.getElementById('clusterMaxDist') as HTMLInputElement,
+    bbox: document.getElementById('bbox') as HTMLInputElement,
+    tokenInput: document.getElementById('token-input') as HTMLInputElement,
+    tokenPrompt: document.getElementById('token-prompt') as HTMLElement,
+    controls: document.getElementById('controls') as HTMLElement,
+    openControlsButton: document.getElementById('open-controls-button') as HTMLElement,
+    loadButton: document.getElementById('load-button') as HTMLElement,
+    refreshButton: document.getElementById('refresh-button') as HTMLElement,
+};
+
 function showError(message: string) {
-    const errorMessage = document.getElementById('error-message') as HTMLElement | null;
-    if (!errorMessage) return;
-    errorMessage.textContent = message;
-    errorMessage.style.display = 'block';
+    if (!dom.errorMessage) return;
+    dom.errorMessage.textContent = message;
+    dom.errorMessage.style.display = 'block';
 }
 
 function getApiUrl() {
-    const startTime = (document.getElementById('startTime') as HTMLInputElement).value;
-    const endTime = (document.getElementById('endTime') as HTMLInputElement).value;
-    const limit = (document.getElementById('limit') as HTMLInputElement).value;
-    const clusterMaxDist = (document.getElementById('clusterMaxDist') as HTMLInputElement).value;
-    const bbox = (document.getElementById('bbox') as HTMLInputElement).value;
+    const startTime = dom.startTime.value;
+    const endTime = dom.endTime.value;
+    const limit = dom.limit.value;
+    const clusterMaxDist = dom.clusterMaxDist.value;
+    const bbox = dom.bbox.value;
 
     const params = new URLSearchParams();
     if (startTime) params.set('startTime', new Date(startTime).toISOString());
@@ -30,8 +44,7 @@ function getApiUrl() {
 }
 
 async function loadMap() {
-    const tokenInput = document.getElementById('token-input') as HTMLInputElement | null;
-    const tokenFromInput = tokenInput?.value?.trim() || '';
+    const tokenFromInput = dom.tokenInput?.value?.trim() || '';
     const token = tokenFromInput || (() => { try { return localStorage.getItem(STORAGE_KEY) || ''; } catch { return ''; } })();
 
     if (!token) {
@@ -59,14 +72,9 @@ async function loadMap() {
             return;
         }
 
-        const promptDiv = document.getElementById('token-prompt') as HTMLElement | null;
-        if (promptDiv) promptDiv.style.display = 'none';
-
-        const controlsDiv = document.getElementById('controls') as HTMLElement | null;
-        if (controlsDiv) controlsDiv.style.display = 'none';
-
-        const openControlsButton = document.getElementById('open-controls-button') as HTMLElement | null;
-        if (openControlsButton) openControlsButton.style.display = 'block';
+        if (dom.tokenPrompt) dom.tokenPrompt.style.display = 'none';
+        if (dom.controls) dom.controls.style.display = 'none';
+        if (dom.openControlsButton) dom.openControlsButton.style.display = 'block';
 
         const last = locations[locations.length - 1];
         map = leaflet.map('map').setView([last.latitude, last.longitude], 16);
@@ -177,39 +185,32 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
-            const input = document.getElementById('token-input') as HTMLInputElement | null;
-            if (input) input.value = stored;
+            if (dom.tokenInput) dom.tokenInput.value = stored;
         }
     } catch { }
 
-    const loadButton = document.getElementById('load-button');
-    if (loadButton) {
-        loadButton.addEventListener('click', () => {
-            const errorMessage = document.getElementById('error-message') as HTMLElement | null;
-            if (errorMessage) errorMessage.style.display = 'none';
+    if (dom.loadButton) {
+        dom.loadButton.addEventListener('click', () => {
+            if (dom.errorMessage) dom.errorMessage.style.display = 'none';
             loadMap();
         });
     }
 
-    const refreshButton = document.getElementById('refresh-button');
-    if (refreshButton) {
-        refreshButton.addEventListener('click', () => {
+    if (dom.refreshButton) {
+        dom.refreshButton.addEventListener('click', () => {
             refresh();
         });
     }
 
-    const controlsDiv = document.getElementById('controls');
-    const openControlsButton = document.getElementById('open-controls-button');
-
-    if (controlsDiv && openControlsButton) {
-        openControlsButton.addEventListener('click', () => {
-            controlsDiv.style.display = 'block';
-            openControlsButton.style.display = 'none';
+    if (dom.controls && dom.openControlsButton) {
+        dom.openControlsButton.addEventListener('click', () => {
+            dom.controls.style.display = 'block';
+            dom.openControlsButton.style.display = 'none';
         });
 
-        controlsDiv.addEventListener('mouseleave', () => {
-            controlsDiv.style.display = 'none';
-            openControlsButton.style.display = 'block';
+        dom.controls.addEventListener('mouseleave', () => {
+            dom.controls.style.display = 'none';
+            dom.openControlsButton.style.display = 'block';
         });
     }
 });
