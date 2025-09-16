@@ -95,24 +95,24 @@ async function loadMap() {
     }
 }
 
-let currentPolyline: any = null;
-let startMarker: any = null;
-let endMarker: any = null;
+let currentPolyline: L.Polyline | null = null;
+let startMarker: L.Marker | null = null;
+let endMarker: L.Marker | null = null;
 let locationsCache: any[] = [];
 
 async function refresh(triggeredByUser: boolean = false) {
     if (!map) return;
 
     try {
-        map.eachLayer((layer: any) => {
-            if (!currentPolyline && (layer instanceof (leaflet as any).Polyline)) {
+        map.eachLayer((layer: L.Layer) => {
+            if (!currentPolyline && (layer instanceof L.Polyline)) {
                 currentPolyline = layer;
             }
-            if (!startMarker && (layer instanceof (leaflet as any).Marker)) {
+            if (!startMarker && (layer instanceof L.Marker)) {
                 const popup = layer.getPopup && layer.getPopup();
                 if (popup && popup.getContent && popup.getContent() === 'Start') startMarker = layer;
             }
-            if (!endMarker && (layer instanceof (leaflet as any).Marker)) {
+            if (!endMarker && (layer instanceof L.Marker)) {
                 const popup = layer.getPopup && layer.getPopup();
                 if (popup && popup.getContent && popup.getContent() === 'End') endMarker = layer;
             }
@@ -144,7 +144,7 @@ async function refresh(triggeredByUser: boolean = false) {
             currentPolyline.setLatLngs(latLngs);
         } else {
             currentPolyline = leaflet.polyline(latLngs, { color: 'blue' }).addTo(map);
-            currentPolyline.on('click', function (e: any) {
+            currentPolyline.on('click', function (e: L.LeafletMouseEvent) {
                 const latlng = e.latlng;
                 let minIdx = 0;
                 let minDist = Infinity;
