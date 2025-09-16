@@ -1,0 +1,14 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "noEmit": false,
+        "declaration": false,
+        "outDir": "./public/assets",
+        "rootDir": "./src/frontend",
+        "types": []
+    },
+    "include": [
+        "src/frontend/**/*.ts"
+    ],
+    "exclude": []
+}

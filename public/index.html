@@ -1,32 +1,103 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Hello, World!</title>
-	</head>
-	<body>
-		<h1 id="heading"></h1>
-		<p>This page comes from a static asset stored at `public/index.html` as configured in `wrangler.jsonc`.</p>
-		<button id="button" type="button">Fetch a random UUID</button>
-		<output id="random" for="button"></output>
-		<script>
-			fetch('/message')
-				.then((resp) => resp.text())
-				.then((text) => {
-					const h1 = document.getElementById('heading');
-					h1.textContent = text;
-				});
 
-			const button = document.getElementById("button");
-			button.addEventListener("click", () => {
-				fetch('/random')
-					.then((resp) => resp.text())
-					.then((text) => {
-						const random = document.getElementById('random');
-						random.textContent = text;
-					});
-			});
-		</script>
-	</body>
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Where Was I - Map</title>
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+		integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+	<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+		integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+	<style>
+		body {
+			margin: 0;
+			font-family: sans-serif;
+		}
+
+		#map {
+			height: 100vh;
+		}
+
+		.token-prompt {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			z-index: 1000;
+			background: white;
+			padding: 2em;
+			border-radius: 8px;
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+			text-align: center;
+		}
+
+		.token-prompt input {
+			padding: 0.5em;
+			width: 250px;
+			margin-bottom: 1em;
+		}
+
+		.token-prompt button {
+			padding: 0.7em 1.5em;
+			border: none;
+			background-color: #007bff;
+			color: white;
+			border-radius: 4px;
+			cursor: pointer;
+		}
+
+		.token-prompt button:hover {
+			background-color: #0056b3;
+		}
+
+		#error-message {
+			color: red;
+			margin-top: 1em;
+			display: none;
+		}
+	</style>
+</head>
+
+<body>
+
+	<div id="map"></div>
+
+	<div id="token-prompt" class="token-prompt">
+		<h3>Enter Access Token</h3>
+		<p>You need a token with "read" permissions to view the map.</p>
+		<input type="password" id="token-input" placeholder="Your API token">
+		<br>
+		<button id="load-button">Load Map</button>
+		<p id="error-message"></p>
+	</div>
+
+	<script>
+		(function () {
+			try {
+				const url = new URL(window.location.href);
+				const queryToken = url.searchParams.get('token');
+				const hashToken = url.hash && url.hash.startsWith('#token=') ? url.hash.slice('#token='.length) : null;
+				const token = queryToken || hashToken;
+
+				if (token) {
+					try { localStorage.setItem('apiToken', token); } catch (_) {}
+					// Clean token from the URL
+					url.searchParams.delete('token');
+					if (hashToken) url.hash = '';
+					history.replaceState({}, '', url.toString());
+				}
+
+				const stored = (() => { try { return localStorage.getItem('apiToken'); } catch (_) { return null; } })();
+				if (stored) {
+					const el = document.getElementById('token-input');
+					if (el) el.value = stored;
+				}
+			} catch (_) { }
+		})();
+	</script>
+	<script type="module" src="/assets/map.js"></script>
+
+</body>
+
 </html>

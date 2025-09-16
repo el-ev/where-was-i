@@ -18,5 +18,9 @@
 			"database_name": "where-was-i-db",
 			"database_id": "94ffaacd-5973-46d8-b938-3a778b07e804"
 		}
-	]
+	],
+	"build": {
+		"command": "sh -c \"tsc -p tsconfig.frontend.json || true\"",
+		"watch_dir": "src/frontend"
+	}
 }

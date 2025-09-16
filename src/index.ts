@@ -96,8 +96,13 @@ app.get('/locations', authMiddleware('read'), async (c) => {
 })
 
 app.post('/locations', authMiddleware('write'), async (c) => {
-	// { lat: number, lng: number, alt: number, t: number }
-	const parseResult = locationSchema.safeParse(await c.req.json());
+	let body: any;
+	try {
+		body = await c.req.json();
+	} catch (e) {
+		return c.json({ error: 'Invalid request.' }, 400);
+	}
+	const parseResult = locationSchema.safeParse(body);
 	if (!parseResult.success) {
 		return c.json({ error: 'Invalid location data', details: parseResult.error.errors }, 400);
 	}
@@ -107,7 +112,12 @@ app.post('/locations', authMiddleware('write'), async (c) => {
 })
 
 app.post('/tokens', authMiddleware('create_token'), async (c) => {
-	const body = await c.req.json();
+	let body: any;
+	try {
+		body = await c.req.json();
+	} catch (e) {
+		return c.json({ error: 'Invalid request.' }, 400);
+	}
 	const validation = createTokenSchema.safeParse(body);
 
 	if (!validation.success) {
