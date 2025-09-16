@@ -11,6 +11,24 @@ function showError(message: string) {
     errorMessage.style.display = 'block';
 }
 
+function getApiUrl() {
+    const startTime = (document.getElementById('startTime') as HTMLInputElement).value;
+    const endTime = (document.getElementById('endTime') as HTMLInputElement).value;
+    const limit = (document.getElementById('limit') as HTMLInputElement).value;
+    const clusterMaxDist = (document.getElementById('clusterMaxDist') as HTMLInputElement).value;
+    const bbox = (document.getElementById('bbox') as HTMLInputElement).value;
+
+    const params = new URLSearchParams();
+    if (startTime) params.set('startTime', new Date(startTime).toISOString());
+    if (endTime) params.set('endTime', new Date(endTime).toISOString());
+    if (limit) params.set('limit', limit);
+    if (clusterMaxDist) params.set('clusterMaxDist', clusterMaxDist);
+    if (bbox) params.set('bbox', bbox);
+
+    const queryString = params.toString();
+    return `/locations${queryString ? `?${queryString}` : ''}`;
+}
+
 async function loadMap() {
     const tokenInput = document.getElementById('token-input') as HTMLInputElement | null;
     const tokenFromInput = tokenInput?.value?.trim() || '';
@@ -24,7 +42,7 @@ async function loadMap() {
     try { localStorage.setItem(STORAGE_KEY, token); } catch { }
 
     try {
-        const response = await fetch('/locations', {
+        const response = await fetch(getApiUrl(), {
             headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -43,6 +61,12 @@ async function loadMap() {
 
         const promptDiv = document.getElementById('token-prompt') as HTMLElement | null;
         if (promptDiv) promptDiv.style.display = 'none';
+
+        const controlsDiv = document.getElementById('controls') as HTMLElement | null;
+        if (controlsDiv) controlsDiv.style.display = 'block';
+
+        const openControlsButton = document.getElementById('open-controls-button') as HTMLElement | null;
+        if (openControlsButton) openControlsButton.style.display = 'none';
 
         const first = locations[0];
         map = leaflet.map('map').setView([first.latitude, first.longitude], 16);
@@ -64,6 +88,7 @@ let startMarker: any = null;
 let endMarker: any = null;
 let locationsCache: any[] = [];
 
+// TODO incremental fetching
 async function refresh() {
     if (!map) return;
 
@@ -88,7 +113,7 @@ async function refresh() {
     if (!token) return;
 
     try {
-        const response = await fetch('/locations', {
+        const response = await fetch(getApiUrl(), {
             headers: { Authorization: `Bearer ${token}` },
         });
         if (!response.ok) return;
@@ -163,6 +188,28 @@ document.addEventListener('DOMContentLoaded', () => {
             const errorMessage = document.getElementById('error-message') as HTMLElement | null;
             if (errorMessage) errorMessage.style.display = 'none';
             loadMap();
+        });
+    }
+
+    const refreshButton = document.getElementById('refresh-button');
+    if (refreshButton) {
+        refreshButton.addEventListener('click', () => {
+            refresh();
+        });
+    }
+
+    const controlsDiv = document.getElementById('controls');
+    const openControlsButton = document.getElementById('open-controls-button');
+
+    if (controlsDiv && openControlsButton) {
+        openControlsButton.addEventListener('click', () => {
+            controlsDiv.style.display = 'block';
+            openControlsButton.style.display = 'none';
+        });
+
+        controlsDiv.addEventListener('mouseleave', () => {
+            controlsDiv.style.display = 'none';
+            openControlsButton.style.display = 'block';
         });
     }
 });

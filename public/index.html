@@ -56,12 +56,78 @@
 			margin-top: 1em;
 			display: none;
 		}
+
+		#controls {
+			position: absolute;
+			top: 10px;
+			right: 10px;
+			z-index: 1000;
+			background: white;
+			padding: 1em;
+			border-radius: 8px;
+			box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+			display: none;
+			max-width: 300px;
+		}
+
+		#controls h4 {
+			margin: 0;
+		}
+
+		#controls label {
+			display: block;
+			margin-bottom: 0.5em;
+		}
+
+		#controls input {
+			width: calc(100% - 10px);
+			padding: 0.3em;
+		}
+
+		#controls button {
+			width: 100%;
+			padding: 0.7em;
+			border: none;
+			background-color: #c39bd3;
+			color: white;
+			border-radius: 4px;
+			cursor: pointer;
+			margin-top: 0.5em;
+		}
+
+		#controls button:hover {
+			background-color: #a569bd;
+		}
+
+		#open-controls-button {
+			display: none;
+			position: absolute;
+			top: 10px;
+			right: 10px;
+			z-index: 1000;
+			padding: 0.25em 0.75em;
+			border-radius: 4px;
+			border: 1px solid #ccc;
+			background: white;
+			cursor: pointer;
+		}
 	</style>
 </head>
 
 <body>
 
 	<div id="map"></div>
+	<button id="open-controls-button">Options</button>
+
+	<div id="controls">
+		<h4>Query Options</h4>
+		<label>Start Time: <input type="datetime-local" id="startTime"></label>
+		<label>End Time: <input type="datetime-local" id="endTime"></label>
+		<label>Limit: <input type="number" id="limit" min="0" placeholder="0"></label>
+		<label>Cluster (m): <input type="number" id="clusterMaxDist" value="20" min="0"></label>
+		<label>BBox (W,S,E,N): <input type="text" id="bbox" placeholder="e.g. -122.5,37.7,-122.3,37.8"></label>
+		<button id="refresh-button">Refresh</button>
+	</div>
 
 	<div id="token-prompt" class="token-prompt">
 		<h3>Enter Access Token</h3>
@@ -81,7 +147,7 @@
 				const token = queryToken || hashToken;
 
 				if (token) {
-					try { localStorage.setItem('apiToken', token); } catch (_) {}
+					try { localStorage.setItem('apiToken', token); } catch (_) { }
 					url.searchParams.delete('token');
 					if (hashToken) url.hash = '';
 					history.replaceState({}, '', url.toString());
