@@ -61,9 +61,13 @@ locations.post('/', authMiddleware('write'), async (c) => {
         return c.json({ error: 'Invalid location data', details: parseResult.error.errors }, 400);
     }
     const { lat, lng, alt, t } = parseResult.data;
-    await c.env.DB.prepare(
-        'INSERT INTO locations (latitude, longitude, altitude, timestamp) VALUES (?, ?, ?, ?)'
-    ).bind(lat, lng, alt, t).run();
+    try {
+        await c.env.DB.prepare(
+            'INSERT INTO locations (latitude, longitude, altitude, timestamp) VALUES (?, ?, ?, ?)'
+        ).bind(lat, lng, alt, t).run();
+    } catch (e) {
+        return c.json({ error: 'Database error', details: (e as Error).message }, 500);
+    }
     return c.json({ message: 'Location added' }, 201);
 });
 
