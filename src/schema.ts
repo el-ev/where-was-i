@@ -9,7 +9,7 @@ export const locationSchema = z.object(
     }
 );
 
-export type Location = {
+export type LocationRecord = {
     id: number;
     latitude: number;
     longitude: number;

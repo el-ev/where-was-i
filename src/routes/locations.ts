@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { locationSchema } from '../schema';
+import { LocationRecord, locationSchema } from '../schema';
 import { authMiddleware } from '../middleware/auth';
 
 const locations = new Hono<{ Bindings: Env }>();
@@ -9,7 +9,7 @@ locations.get('/', authMiddleware('read'), async (c) => {
     const parsed = Number(minDistParam);
     const minDist = Number.isFinite(parsed) && parsed >= 0 ? parsed : 20;
 
-    const { results } = await c.env.DB.prepare('SELECT * FROM locations ORDER BY timestamp ASC').all();
+    const { results } = await c.env.DB.prepare('SELECT * FROM locations ORDER BY timestamp ASC').all<LocationRecord>();
 
     const crowFlyDist = (lat1: number, lng1: number, lat2: number, lng2: number) => {
         const toRad = (deg: number) => (deg * Math.PI) / 180;
@@ -24,36 +24,36 @@ locations.get('/', authMiddleware('read'), async (c) => {
         return R * c2;
     };
 
-    const median = (arr: number[]) => {
-        if (arr.length === 0) return 0;
-        const s = arr.slice().sort((a, b) => a - b);
-        const m = Math.floor(s.length / 2);
-        return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
-    };
-
-    const representatives: any[] = [];
-    let cluster: any[] = [];
+    const representatives: LocationRecord[] = [];
+    let cluster: LocationRecord[] = [];
     let sumLat = 0;
     let sumLng = 0;
 
     const finalizeCluster = () => {
         if (cluster.length === 0) return;
-        if (cluster.length === 1) {
-            representatives.push(cluster[0]);
-        } else {
-            const lats = cluster.map((p) => Number(p.latitude));
-            const lngs = cluster.map((p) => Number(p.longitude));
-            const alts = cluster.map((p) => (p.altitude != null ? Number(p.altitude) : NaN)).filter((v) => !Number.isNaN(v));
-            const times = cluster.map((p) => Number(p.timestamp));
 
-            const rep: any = {
-                latitude: median(lats),
-                longitude: median(lngs),
-                timestamp: median(times),
-            };
-            if (alts.length > 0) rep.altitude = median(alts);
-            representatives.push(rep);
+        const centroidLat = sumLat / cluster.length;
+        const centroidLng = sumLng / cluster.length;
+
+        let bestPoint = cluster[0];
+        let bestDist = crowFlyDist(
+            centroidLat,
+            centroidLng,
+            Number(bestPoint.latitude),
+            Number(bestPoint.longitude)
+        );
+
+        for (let i = 1; i < cluster.length; i++) {
+            const p = cluster[i];
+            const d = crowFlyDist(centroidLat, centroidLng, Number(p.latitude), Number(p.longitude));
+            if (d < bestDist) {
+                bestDist = d;
+                bestPoint = p;
+            }
         }
+
+        representatives.push(bestPoint);
+
         cluster = [];
         sumLat = 0;
         sumLng = 0;
