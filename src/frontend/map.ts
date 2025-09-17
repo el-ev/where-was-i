@@ -96,8 +96,6 @@ async function loadMap() {
 }
 
 let currentPolyline: L.Polyline | null = null;
-let startMarker: L.Marker | null = null;
-let endMarker: L.Marker | null = null;
 let locationsCache: any[] = [];
 
 async function refresh(triggeredByUser: boolean = false) {
@@ -107,14 +105,6 @@ async function refresh(triggeredByUser: boolean = false) {
         map.eachLayer((layer: L.Layer) => {
             if (!currentPolyline && (layer instanceof L.Polyline)) {
                 currentPolyline = layer;
-            }
-            if (!startMarker && (layer instanceof L.Marker)) {
-                const popup = layer.getPopup && layer.getPopup();
-                if (popup && popup.getContent && popup.getContent() === 'Start') startMarker = layer;
-            }
-            if (!endMarker && (layer instanceof L.Marker)) {
-                const popup = layer.getPopup && layer.getPopup();
-                if (popup && popup.getContent && popup.getContent() === 'End') endMarker = layer;
             }
         });
     } catch {
@@ -165,21 +155,6 @@ async function refresh(triggeredByUser: boolean = false) {
                     )
                     .openOn(map);
             });
-        }
-
-        if (latLngs.length > 0) {
-            if (startMarker) {
-                startMarker.setLatLng(latLngs[0]);
-            } else {
-                startMarker = leaflet.marker(latLngs[0]).addTo(map).bindPopup('Start');
-            }
-
-            const last = latLngs.length - 1;
-            if (endMarker) {
-                endMarker.setLatLng(latLngs[last]);
-            } else {
-                endMarker = leaflet.marker(latLngs[last]).addTo(map).bindPopup('End');
-            }
         }
     } catch {
     }
