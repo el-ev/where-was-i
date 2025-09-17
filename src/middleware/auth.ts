@@ -11,17 +11,14 @@ export const authMiddleware = (required: keyof Permissions) => {
         const token = authHeader.substring(7);
         const hash = await sha256(token);
         const now = Math.floor(Date.now() / 1000);
-        const { results } = await env.DB.prepare(
+        const tokenRecord = await env.DB.prepare(
             'SELECT * FROM tokens WHERE token_hash = ? AND (expires_at IS NULL OR expires_at > ?)'
-        ).bind(hash, now).all<TokenRecord>();
-        if (!results || results.length === 0) {
+        ).bind(hash, now).first<TokenRecord>();
+        if (!tokenRecord) {
             return c.json({ error: 'Unauthorized' }, 401);
         }
-        const tokenRecord = results[0];
-        const permissions = typeof tokenRecord.permissions === 'string'
-            ? JSON.parse(tokenRecord.permissions)
-            : tokenRecord.permissions;
-        if (!(permissions as any)[required]) {
+        const permissions: Permissions = JSON.parse(tokenRecord.permissions as unknown as string);
+        if (!permissions[required]) {
             return c.json({ error: 'Forbidden' }, 403);
         }
         await next();
