@@ -55,13 +55,6 @@ const parseNonNegativeNumber = (arg: unknown): number | undefined => {
     return Number.isFinite(n) && n >= 0 ? n : undefined;
 };
 
-const parseLimit = (arg: unknown): number | undefined => {
-    const parsed = Number(arg);
-    if (!Number.isFinite(parsed)) return undefined;
-    const n = Math.max(1, Math.floor(parsed));
-    return Math.min(n, 1000);
-};
-
 const parseBbox = (arg: unknown): [number, number, number, number] | undefined => {
     if (typeof arg === 'string') {
         const parts = arg.split(',').map(Number);
@@ -80,7 +73,7 @@ export const locationQuerySchema = z
         startTime: z.preprocess(parseDate, z.date().optional()),
         endTime: z.preprocess(parseDate, z.date().optional()),
         clusterMaxDist: z.preprocess(parseNonNegativeNumber, z.number().min(0).optional()),
-        limit: z.preprocess(parseLimit, z.number().int().min(0).optional()),
+        limit: z.preprocess(parseNonNegativeNumber, z.number().int().min(0).optional()),
         bbox: z.preprocess(parseBbox, z.tuple([z.number(), z.number(), z.number(), z.number()]).optional()),
     })
     .superRefine((val, ctx) => {

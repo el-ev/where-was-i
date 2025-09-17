@@ -39,7 +39,7 @@ locations.get('/', authMiddleware('read'), async (c) => {
         queryString += ' WHERE ' + whereClauses.join(' AND ');
     }
 
-    queryString += ' ORDER BY timestamp ASC';
+    queryString += ' ORDER BY id DESC';
 
     const rawLimit = locationQueryParams.data.limit;
     if (rawLimit === undefined) {
@@ -50,7 +50,7 @@ locations.get('/', authMiddleware('read'), async (c) => {
     }
     const { results } = await c.env.DB.prepare(queryString).all<LocationRecord>();
 
-    const representatives = clusterLocations(results, clusterMaxDist);
+    const representatives = clusterLocations(results.reverse(), clusterMaxDist);
 
     return c.json(representatives);
 });
