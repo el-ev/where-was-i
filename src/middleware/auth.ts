@@ -4,7 +4,7 @@ import type { Permissions, TokenRecord } from '../schema';
 export const authMiddleware = (required: keyof Permissions) => {
     return async (c: any, next: any) => {
         const env = c.env as Env;
-        const logger = c.logger;
+        const logger = (c as any).logger;
         
         const authHeader = c.req.header('Authorization');
         if (!authHeader || !authHeader.startsWith('Bearer ')) {

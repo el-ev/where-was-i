@@ -5,7 +5,7 @@ import { generateToken } from '../utils/token';
 const init = new Hono<{ Bindings: Env }>();
 
 init.post('/', async (c) => {
-    const logger = c.logger;
+    const logger = (c as any).logger;
     
     logger?.log('Database initialization started', {
         action: 'init_start'

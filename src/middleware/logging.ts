@@ -6,7 +6,7 @@ export const requestLoggingMiddleware = () => {
         const logger = Logger.createRequestLogger(c.req.raw);
         
         // Store logger in context for use in route handlers
-        c.logger = logger;
+        (c as any).logger = logger;
         
         logger.log('Request started', {
             action: 'request_start'

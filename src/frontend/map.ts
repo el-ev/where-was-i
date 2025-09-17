@@ -74,7 +74,7 @@ async function loadMap() {
         }
 
         const locations = await response.json();
-        console.log(`Loaded ${locations.length} locations from API`);
+        console.log(`Loaded ${Array.isArray(locations) ? locations.length : 0} locations from API`);
         
         if (!Array.isArray(locations) || locations.length === 0) {
             console.warn('No location data returned from API');
@@ -123,7 +123,6 @@ async function refresh(triggeredByUser: boolean = false) {
         });
     } catch (error) {
         console.error('Error processing map layers:', error);
-    }
     }
 
     const token = (() => { try { return localStorage.getItem(STORAGE_KEY) || ''; } catch { return ''; } })();
