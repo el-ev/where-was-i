@@ -6,7 +6,7 @@ import { clusterLocations } from '../utils/clustering';
 const locations = new Hono<{ Bindings: Env }>();
 
 locations.get('/', authMiddleware('read'), async (c) => {
-    const logger = c.logger;
+    const logger = (c as any).logger;
     const query = c.req.query();
     
     logger?.debug('Processing locations query', {
@@ -103,7 +103,7 @@ locations.get('/', authMiddleware('read'), async (c) => {
 });
 
 locations.post('/', authMiddleware('write'), async (c) => {
-    const logger = c.logger;
+    const logger = (c as any).logger;
     
     let body: any;
     try {
@@ -156,7 +156,7 @@ locations.post('/', authMiddleware('write'), async (c) => {
 });
 
 locations.get('/last', authMiddleware('read'), async (c) => {
-    const logger = c.logger;
+    const logger = (c as any).logger;
     const limitParam = c.req.query('limit');
     const limit = limitParam ? Math.max(1, Math.min(1000, Math.floor(Number(limitParam)))) : 1;
 

@@ -7,7 +7,7 @@ import { generateToken } from '../utils/token';
 const tokens = new Hono<{ Bindings: Env }>();
 
 tokens.post('/', authMiddleware('create_token'), async (c) => {
-    const logger = c.logger;
+    const logger = (c as any).logger;
     
     let body: any;
     try {
@@ -94,7 +94,7 @@ tokens.post('/', authMiddleware('create_token'), async (c) => {
 });
 
 tokens.get('/', authMiddleware('create_token'), async (c) => {
-    const logger = c.logger;
+    const logger = (c as any).logger;
     
     logger?.debug('Processing tokens list request', {
         action: 'tokens_list'
