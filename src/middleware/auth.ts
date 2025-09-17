@@ -21,6 +21,8 @@ export const authMiddleware = (required: keyof Permissions) => {
         if (!permissions[required]) {
             return c.json({ error: 'Forbidden' }, 403);
         }
+        // Store token record in context for later use
+        (c as any).tokenRecord = tokenRecord;
         await next();
     }
 }

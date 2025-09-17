@@ -46,7 +46,10 @@ init.post('/', async (c) => {
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		token_hash TEXT NOT NULL UNIQUE,
 		permissions TEXT NOT NULL,
-		expires_at INTEGER
+		expires_at INTEGER,
+		comment TEXT,
+		available_start_time INTEGER,
+		available_end_time INTEGER
 	  );
 	`),
     ];
@@ -58,7 +61,7 @@ init.post('/', async (c) => {
     const adminPermissions = JSON.stringify({ read: true, write: true, create_token: true });
 
     await c.env.DB.prepare(
-        'INSERT INTO tokens (token_hash, permissions, expires_at) VALUES (?, ?, NULL)'
+        'INSERT INTO tokens (token_hash, permissions, expires_at, comment, available_start_time, available_end_time) VALUES (?, ?, NULL, NULL, NULL, NULL)'
     ).bind(tokenHash, adminPermissions).run();
 
     return c.json({ success: true, message: 'Database initialized', admin_token: adminToken });

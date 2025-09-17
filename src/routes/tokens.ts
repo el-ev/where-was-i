@@ -19,7 +19,7 @@ tokens.post('/', authMiddleware('create_token'), async (c) => {
         return c.json({ error: 'Invalid token creation data', details: validation.error.flatten() }, 400);
     }
 
-    const { expires, expires_in_days, permissions, comment } = validation.data;
+    const { expires, expires_in_days, permissions, comment, available_start_time, available_end_time } = validation.data;
 
     const selfToken = await c.env.DB.prepare(
         'SELECT expires_at FROM tokens WHERE token_hash = ?'
@@ -39,10 +39,19 @@ tokens.post('/', authMiddleware('create_token'), async (c) => {
         expires_at = Math.floor(Date.now() / 1000) + expires_in_days * 24 * 60 * 60;
     }
 
+    let available_start_time_epoch: number | null = null;
+    let available_end_time_epoch: number | null = null;
+    if (available_start_time) {
+        available_start_time_epoch = Math.floor(available_start_time.getTime() / 1000);
+    }
+    if (available_end_time) {
+        available_end_time_epoch = Math.floor(available_end_time.getTime() / 1000);
+    }
+
     try {
         await c.env.DB.prepare(
-            'INSERT INTO tokens (token_hash, permissions, expires_at, comment) VALUES (?, ?, ?, ?)'
-        ).bind(tokenHash, JSON.stringify(permissions), expires_at, comment).run();
+            'INSERT INTO tokens (token_hash, permissions, expires_at, comment, available_start_time, available_end_time) VALUES (?, ?, ?, ?, ?, ?)'
+        ).bind(tokenHash, JSON.stringify(permissions), expires_at, comment, available_start_time_epoch, available_end_time_epoch).run();
     } catch (e) {
         return c.json({ error: 'Database error', details: (e as Error).message }, 500);
     }
@@ -52,7 +61,7 @@ tokens.post('/', authMiddleware('create_token'), async (c) => {
 
 tokens.get('/', authMiddleware('create_token'), async (c) => {
     const { results } = await c.env.DB.prepare(
-        'SELECT id, permissions, expires_at, comment FROM tokens'
+        'SELECT id, permissions, expires_at, comment, available_start_time, available_end_time FROM tokens'
     ).all<TokenRecord>();
 
     const allTokens = results.map(t => ({ ...t, permissions: JSON.parse(t.permissions as unknown as string) }));
