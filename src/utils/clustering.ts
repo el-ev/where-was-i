@@ -15,10 +15,13 @@ export function crowFlyDist(lat1: number, lng1: number, lat2: number, lng2: numb
 
 export function clusterLocations(
     records: LocationRecord[],
-    minDist: number = 20,
+    maxDist: number = 20,
     windowSize: number = 5,
     splitThreshold: number = 0.2
 ): LocationRecord[] {
+    if (maxDist === 0) {
+        return records;
+    }
     if (records.length === 0) {
         return [];
     }
@@ -74,7 +77,7 @@ export function clusterLocations(
         const centroidLng = sumLng / cluster.length;
         const d = crowFlyDist(centroidLat, centroidLng, plat, plng);
 
-        if (d < minDist) {
+        if (d < maxDist) {
             cluster.push(p);
             sumLat += plat;
             sumLng += plng;
@@ -88,7 +91,7 @@ export function clusterLocations(
                         centroidLng,
                         Number(futureP.latitude),
                         Number(futureP.longitude)
-                    ) >= minDist
+                    ) >= maxDist
                 ) {
                     farPoints++;
                 }

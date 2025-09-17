@@ -51,7 +51,6 @@ locations.get('/', authMiddleware('read'), async (c) => {
     const { results } = await c.env.DB.prepare(queryString).all<LocationRecord>();
 
     const representatives = clusterLocations(results.reverse(), clusterMaxDist);
-
     return c.json(representatives);
 });
 
