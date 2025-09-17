@@ -48,7 +48,10 @@ async function loadMap() {
     const tokenFromInput = dom.tokenInput?.value?.trim() || '';
     const token = tokenFromInput || (() => { try { return localStorage.getItem(STORAGE_KEY) || ''; } catch { return ''; } })();
 
+    console.log('Loading map with token authentication');
+
     if (!token) {
+        console.warn('No token provided for map loading');
         showError('Please enter a token.');
         return;
     }
@@ -56,19 +59,25 @@ async function loadMap() {
     try { localStorage.setItem(STORAGE_KEY, token); } catch { }
 
     try {
+        console.log('Fetching location data from API');
         const response = await fetch(getApiUrl(), {
             headers: { Authorization: `Bearer ${token}` },
         });
 
         if (response.status === 401 || response.status === 403) {
+            console.warn('Authentication failed:', response.status);
             throw new Error('Invalid or unauthorized token.');
         }
         if (!response.ok) {
+            console.error('API request failed:', response.status, response.statusText);
             throw new Error('Failed to fetch location data.');
         }
 
         const locations = await response.json();
+        console.log(`Loaded ${locations.length} locations from API`);
+        
         if (!Array.isArray(locations) || locations.length === 0) {
+            console.warn('No location data returned from API');
             showError('No location data found.');
             return;
         }
@@ -78,6 +87,7 @@ async function loadMap() {
         if (dom.openControlsButton) dom.openControlsButton.style.display = 'block';
 
         const last = locations[locations.length - 1];
+        console.log('Initializing map at coordinates:', last.latitude, last.longitude);
         map = leaflet.map('map').setView([last.latitude, last.longitude], 16);
         leaflet.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 25,
@@ -87,10 +97,12 @@ async function loadMap() {
         locationsCache = locations;
         await refresh(false);
 
+        console.log('Setting up auto-refresh interval');
         setInterval(() => {
             refresh(false);
         }, 60000);
     } catch (err: any) {
+        console.error('Error loading map:', err);
         showError(err?.message ?? 'Unknown error');
     }
 }
@@ -101,13 +113,17 @@ let locationsCache: any[] = [];
 async function refresh(triggeredByUser: boolean = false) {
     if (!map) return;
 
+    console.log('Refreshing map data', { triggeredByUser });
+
     try {
         map.eachLayer((layer: L.Layer) => {
             if (!currentPolyline && (layer instanceof L.Polyline)) {
                 currentPolyline = layer;
             }
         });
-    } catch {
+    } catch (error) {
+        console.error('Error processing map layers:', error);
+    }
     }
 
     const token = (() => { try { return localStorage.getItem(STORAGE_KEY) || ''; } catch { return ''; } })();

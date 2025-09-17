@@ -7,15 +7,30 @@ import { generateToken } from '../utils/token';
 const tokens = new Hono<{ Bindings: Env }>();
 
 tokens.post('/', authMiddleware('create_token'), async (c) => {
+    const logger = c.logger;
+    
     let body: any;
     try {
         body = await c.req.json();
     } catch {
+        logger?.warn('Invalid JSON in token creation request', {
+            action: 'validation_error',
+            reason: 'invalid_json'
+        });
         return c.json({ error: 'Invalid request.' }, 400);
     }
+    
+    logger?.debug('Processing token creation', {
+        action: 'token_create_start'
+    });
+    
     const validation = createTokenSchema.safeParse(body);
 
     if (!validation.success) {
+        logger?.warn('Invalid token creation data', {
+            action: 'validation_error',
+            errors: validation.error.flatten()
+        });
         return c.json({ error: 'Invalid token creation data', details: validation.error.flatten() }, 400);
     }
 
@@ -27,6 +42,12 @@ tokens.post('/', authMiddleware('create_token'), async (c) => {
     if (selfToken && selfToken.expires_at !== null) {
         const maxExpires = Number(selfToken.expires_at) - Math.floor(Date.now() / 1000);
         if (!expires || expires_in_days * 24 * 60 * 60 > maxExpires) {
+            logger?.warn('Token creation failed - requested duration too long', {
+                action: 'token_create_failed',
+                reason: 'duration_too_long',
+                requested_days: expires_in_days,
+                max_allowed_seconds: maxExpires
+            });
             return c.json({ error: 'Cannot create a token that lasts that long.' }, 400);
         }
     }
@@ -52,7 +73,20 @@ tokens.post('/', authMiddleware('create_token'), async (c) => {
         await c.env.DB.prepare(
             'INSERT INTO tokens (token_hash, permissions, expires_at, comment, available_start_time, available_end_time) VALUES (?, ?, ?, ?, ?, ?)'
         ).bind(tokenHash, JSON.stringify(permissions), expires_at, comment, available_start_time_epoch, available_end_time_epoch).run();
+        
+        logger?.log('Token created successfully', {
+            action: 'token_created',
+            permissions: permissions,
+            expires_in_days: expires_in_days,
+            expires_at: expires_at,
+            comment: comment,
+            has_time_range: !!(available_start_time || available_end_time)
+        });
     } catch (e) {
+        logger?.error('Database error while creating token', e as Error, {
+            action: 'db_error',
+            operation: 'insert_token'
+        });
         return c.json({ error: 'Database error', details: (e as Error).message }, 500);
     }
 
@@ -60,11 +94,22 @@ tokens.post('/', authMiddleware('create_token'), async (c) => {
 });
 
 tokens.get('/', authMiddleware('create_token'), async (c) => {
+    const logger = c.logger;
+    
+    logger?.debug('Processing tokens list request', {
+        action: 'tokens_list'
+    });
+    
     const { results } = await c.env.DB.prepare(
         'SELECT id, permissions, expires_at, comment, available_start_time, available_end_time FROM tokens'
     ).all<TokenRecord>();
 
     const allTokens = results.map(t => ({ ...t, permissions: JSON.parse(t.permissions as unknown as string) }));
+
+    logger?.log('Tokens list retrieved', {
+        action: 'tokens_list_complete',
+        count: allTokens.length
+    });
 
     return c.json(allTokens);
 });
