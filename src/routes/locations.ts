@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { locationQuerySchema, LocationRecord, locationSchema } from '../schema';
+import { locationQuerySchema, LocationRecord, locationSchema, TokenRecord } from '../schema';
 import { authMiddleware } from '../middleware/auth';
 import { clusterLocations } from '../utils/clustering';
 
@@ -13,18 +13,40 @@ locations.get('/', authMiddleware('read'), async (c) => {
     }
     const clusterMaxDist = Number.isFinite(locationQueryParams.data.clusterMaxDist) ? locationQueryParams.data.clusterMaxDist : 0;
 
+    // Get token record from auth middleware
+    const tokenRecord = (c as any).tokenRecord as TokenRecord;
+
     let queryString = 'SELECT * FROM locations';
     const whereClauses: string[] = [];
 
     if (locationQueryParams.data.startId !== undefined) {
         whereClauses.push(`id >= ${locationQueryParams.data.startId}`);
     }
-    if (locationQueryParams.data.startTime !== undefined) {
-        const startTimestamp = Math.floor(locationQueryParams.data.startTime.getTime() / 1000);
+    
+    // Apply token time range restrictions
+    let effectiveStartTime = locationQueryParams.data.startTime;
+    let effectiveEndTime = locationQueryParams.data.endTime;
+    
+    if (tokenRecord.available_start_time !== null) {
+        const tokenStartTime = new Date(tokenRecord.available_start_time * 1000);
+        if (!effectiveStartTime || tokenStartTime > effectiveStartTime) {
+            effectiveStartTime = tokenStartTime;
+        }
+    }
+    
+    if (tokenRecord.available_end_time !== null) {
+        const tokenEndTime = new Date(tokenRecord.available_end_time * 1000);
+        if (!effectiveEndTime || tokenEndTime < effectiveEndTime) {
+            effectiveEndTime = tokenEndTime;
+        }
+    }
+    
+    if (effectiveStartTime !== undefined) {
+        const startTimestamp = Math.floor(effectiveStartTime.getTime() / 1000);
         whereClauses.push(`timestamp >= ${startTimestamp}`);
     }
-    if (locationQueryParams.data.endTime !== undefined) {
-        const endTimestamp = Math.floor(locationQueryParams.data.endTime.getTime() / 1000);
+    if (effectiveEndTime !== undefined) {
+        const endTimestamp = Math.floor(effectiveEndTime.getTime() / 1000);
         whereClauses.push(`timestamp <= ${endTimestamp}`);
     }
     if (locationQueryParams.data.bbox !== undefined) {
@@ -80,9 +102,27 @@ locations.get('/last', authMiddleware('read'), async (c) => {
     const limitParam = c.req.query('limit');
     const limit = limitParam ? Math.max(1, Math.min(1000, Math.floor(Number(limitParam)))) : 1;
 
-    const { results } = await c.env.DB.prepare(
-        'SELECT * FROM locations ORDER BY timestamp DESC LIMIT ?'
-    ).bind(limit).all<LocationRecord>();
+    // Get token record from auth middleware
+    const tokenRecord = (c as any).tokenRecord as TokenRecord;
+
+    let queryString = 'SELECT * FROM locations';
+    const whereClauses: string[] = [];
+
+    // Apply token time range restrictions
+    if (tokenRecord.available_start_time !== null) {
+        whereClauses.push(`timestamp >= ${tokenRecord.available_start_time}`);
+    }
+    if (tokenRecord.available_end_time !== null) {
+        whereClauses.push(`timestamp <= ${tokenRecord.available_end_time}`);
+    }
+
+    if (whereClauses.length) {
+        queryString += ' WHERE ' + whereClauses.join(' AND ');
+    }
+
+    queryString += ' ORDER BY timestamp DESC LIMIT ?';
+
+    const { results } = await c.env.DB.prepare(queryString).bind(limit).all<LocationRecord>();
 
     return c.json(results);
 });

@@ -1,5 +1,30 @@
 import { z } from 'zod';
 
+const parseDate = (arg: unknown): Date | undefined => {
+    if (typeof arg === 'string' || arg instanceof Date) {
+        const d = new Date(arg);
+        if (!isNaN(d.getTime())) return d;
+    }
+    return undefined;
+};
+
+const parseNonNegativeNumber = (arg: unknown): number | undefined => {
+    const n = Number(arg);
+    return Number.isFinite(n) && n >= 0 ? n : undefined;
+};
+
+const parseBbox = (arg: unknown): [number, number, number, number] | undefined => {
+    if (typeof arg === 'string') {
+        const parts = arg.split(',').map(Number);
+        if (parts.length === 4 && parts.every(num => Number.isFinite(num))) {
+            return parts as [number, number, number, number];
+        }
+    } else if (Array.isArray(arg) && arg.length === 4 && arg.every(num => typeof num === 'number')) {
+        return arg as [number, number, number, number];
+    }
+    return undefined;
+};
+
 export const locationSchema = z.object(
     {
         lat: z.number().min(-90).max(90),
@@ -32,6 +57,16 @@ export const createTokenSchema = z.object({
     expires_in_days: z.number().int().nonnegative().default(30),
     permissions: permissionsSchema,
     comment: z.string().optional(),
+    available_start_time: z.preprocess(parseDate, z.date().optional()),
+    available_end_time: z.preprocess(parseDate, z.date().optional()),
+}).superRefine((val, ctx) => {
+    if (val.available_start_time && val.available_end_time && val.available_start_time.getTime() > val.available_end_time.getTime()) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'available_start_time must be before or equal to available_end_time',
+            path: ['available_start_time'],
+        });
+    }
 });
 
 export type TokenRecord = {
@@ -40,32 +75,9 @@ export type TokenRecord = {
     permissions: Permissions;
     expires_at: number | null;
     comment: string | null;
+    available_start_time: number | null;
+    available_end_time: number | null;
 }
-
-const parseDate = (arg: unknown): Date | undefined => {
-    if (typeof arg === 'string' || arg instanceof Date) {
-        const d = new Date(arg);
-        if (!isNaN(d.getTime())) return d;
-    }
-    return undefined;
-};
-
-const parseNonNegativeNumber = (arg: unknown): number | undefined => {
-    const n = Number(arg);
-    return Number.isFinite(n) && n >= 0 ? n : undefined;
-};
-
-const parseBbox = (arg: unknown): [number, number, number, number] | undefined => {
-    if (typeof arg === 'string') {
-        const parts = arg.split(',').map(Number);
-        if (parts.length === 4 && parts.every(num => Number.isFinite(num))) {
-            return parts as [number, number, number, number];
-        }
-    } else if (Array.isArray(arg) && arg.length === 4 && arg.every(num => typeof num === 'number')) {
-        return arg as [number, number, number, number];
-    }
-    return undefined;
-};
 
 export const locationQuerySchema = z
     .object({
