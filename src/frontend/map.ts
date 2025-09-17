@@ -203,9 +203,11 @@ document.addEventListener('DOMContentLoaded', () => {
             dom.openControlsButton.style.display = 'none';
         });
 
-        dom.controls.addEventListener('mouseleave', () => {
-            dom.controls.style.display = 'none';
-            dom.openControlsButton.style.display = 'block';
+        dom.controls.addEventListener('focusout', (event) => {
+            if (!dom.controls.contains((event.relatedTarget as Node))) {
+                dom.controls.style.display = 'none';
+                dom.openControlsButton.style.display = 'block';
+            }
         });
     }
 });
