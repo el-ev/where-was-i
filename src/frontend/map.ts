@@ -88,10 +88,26 @@ async function loadMap() {
         const last = locations[locations.length - 1];
         console.log('Initializing map at coordinates:', last.latitude, last.longitude);
         map = leaflet.map('map').setView([last.latitude, last.longitude], 16);
-        leaflet.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 25,
-            attribution: '© OpenStreetMap contributors',
-        }).addTo(map);
+
+        const baseLayers = {
+            "OpenStreetMap": leaflet.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 25,
+                attribution: '© OpenStreetMap contributors',
+            }),
+            "OpenCycleMap": leaflet.tileLayer('/tiles/cycle/{z}/{x}/{y}', {
+                maxZoom: 25,
+                attribution: 'Data © OpenStreetMap contributors. Maps © Thunderforest'
+            }),
+            "Transport": leaflet.tileLayer('/tiles/transport/{z}/{x}/{y}', {
+                maxZoom: 25,
+                attribution: 'Data © OpenStreetMap contributors. Maps © Thunderforest'
+            }),
+            "None": leaflet.tileLayer('', { maxZoom: 25 }),
+        };
+
+        baseLayers.OpenStreetMap.addTo(map);
+        leaflet.control.layers(baseLayers, {}, { position: 'topleft' }).addTo(map);
+
         map.on('click', (e: L.LeafletMouseEvent) => {
             console.log('Click at', e.latlng);
         });
