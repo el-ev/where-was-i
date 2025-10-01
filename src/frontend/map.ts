@@ -74,7 +74,7 @@ async function loadMap() {
         }
 
         const locations = await response.json();
-        
+
         if (!Array.isArray(locations) || locations.length === 0) {
             console.warn('No location data returned from API');
             showError('No location data found.');
@@ -92,6 +92,9 @@ async function loadMap() {
             maxZoom: 25,
             attribution: '© OpenStreetMap contributors',
         }).addTo(map);
+        map.on('click', (e: L.LeafletMouseEvent) => {
+            console.log('Click at', e.latlng);
+        });
 
         locationsCache = locations;
         await refresh(false);
