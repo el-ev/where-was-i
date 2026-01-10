@@ -111,6 +111,80 @@
 			background: white;
 			cursor: pointer;
 		}
+
+		.dot-marker {
+			background-color: #007bff;
+			border-radius: 50%;
+			border: 2px solid white;
+			box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
+			transition: all 0.2s;
+		}
+
+		.dot-marker.editing {
+			background-color: #ff9800;
+			/* Orange for editing */
+			width: 16px !important;
+			height: 16px !important;
+			margin-left: -8px !important;
+			margin-top: -8px !important;
+		}
+
+		.ambiguity-popup .leaflet-popup-content {
+			margin: 10px;
+			max-height: 200px;
+			overflow-y: auto;
+		}
+
+		.ambiguity-item {
+			padding: 8px;
+			border-bottom: 1px solid #eee;
+			cursor: pointer;
+		}
+
+		.ambiguity-item:last-child {
+			border-bottom: none;
+		}
+
+		.ambiguity-item:hover {
+			background-color: #f5f5f5;
+		}
+
+		.edit-controls {
+			background: white;
+			padding: 8px;
+			border-radius: 4px;
+			box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+			display: flex;
+			gap: 8px;
+			align-items: center;
+			font-size: 14px;
+			white-space: nowrap;
+		}
+
+		.edit-controls button {
+			border: none;
+			background: none;
+			cursor: pointer;
+			font-size: 16px;
+			padding: 4px;
+			border-radius: 4px;
+		}
+
+		.edit-controls .btn-save {
+			color: #28a745;
+		}
+
+		.edit-controls .btn-save:hover {
+			background-color: #e8f5e9;
+		}
+
+		.edit-controls .btn-cancel {
+			color: #dc3545;
+		}
+
+		.edit-controls .btn-cancel:hover {
+			background-color: #fce4ec;
+		}
 	</style>
 </head>
 
@@ -127,6 +201,7 @@
 		<label>Cluster (m): <input type="number" id="clusterMaxDist" value="20" min="0"></label>
 		<label>BBox (W,S,E,N): <input type="text" id="bbox" placeholder="e.g. -122.5,37.7,-122.3,37.8"></label>
 		<button id="refresh-button">Refresh</button>
+		<button id="export-button">Export GPX</button>
 	</div>
 
 	<div id="token-prompt" class="token-prompt">
@@ -161,7 +236,7 @@
 			} catch (_) { }
 		})();
 	</script>
-	<script type="module" src="/assets/map.js"></script>
+	<script type="module" src="/assets/main.js"></script>
 
 </body>
 
