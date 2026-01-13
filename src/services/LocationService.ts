@@ -1,5 +1,5 @@
 import { LocationRecord, LocationQueryParams } from '../schema';
-import { clusterLocations } from '../utils/clustering';
+import { clusterLocations, crowFlyDist } from '../utils/clustering';
 
 export class LocationService {
     constructor(private db: D1Database) { }
@@ -14,7 +14,6 @@ export class LocationService {
             bindings.push(params.startId);
         }
 
-        // Apply time range logic including token restrictions
         let effectiveStartTime = params.startTime;
         let effectiveEndTime = params.endTime;
 
@@ -74,6 +73,55 @@ export class LocationService {
         await this.db.prepare(
             'INSERT INTO locations (latitude, longitude, altitude, timestamp) VALUES (?, ?, ?, ?)'
         ).bind(lat, lng, alt, timestamp).run();
+    }
+
+    async addSmartLocation(lat: number, lng: number, alt: number, timestamp: number): Promise<string> {
+        const { results: recent } = await this.db.prepare(
+            'SELECT * FROM locations ORDER BY timestamp DESC LIMIT 2'
+        ).all<LocationRecord>();
+
+        if (recent.length > 0) {
+            const last = recent[0];
+            const dist = crowFlyDist(last.latitude, last.longitude, lat, lng);
+
+            if (dist < 5) {
+                return "Skipped";
+            }
+        }
+
+        if (recent.length >= 2) {
+            const pB = recent[0];
+            const pA = recent[1];
+
+            const distAB = crowFlyDist(pA.latitude, pA.longitude, pB.latitude, pB.longitude);
+            const distBC = crowFlyDist(pB.latitude, pB.longitude, lat, lng);
+            const distAC = crowFlyDist(pA.latitude, pA.longitude, lat, lng);
+
+            const timeAB = pB.timestamp - pA.timestamp;
+            const timeBC = timestamp - pB.timestamp;
+
+            const speedAB = timeAB > 0 ? distAB / timeAB : 0;
+            const speedBC = timeBC > 0 ? distBC / timeBC : 0;
+
+            const MIN_GLITCH_SPEED = 15;
+
+            const totalPath = distAB + distBC;
+            const efficiency = totalPath > 0 ? distAC / totalPath : 1;
+
+            if (speedAB > MIN_GLITCH_SPEED && speedBC > MIN_GLITCH_SPEED && efficiency < 0.3) {
+                await this.db.prepare(
+                    'UPDATE locations SET latitude = ?, longitude = ?, altitude = ?, timestamp = ? WHERE id = ?'
+                ).bind(lat, lng, alt, timestamp, pB.id).run();
+
+                return "Corrected";
+            }
+        }
+
+        await this.db.prepare(
+            'INSERT INTO locations (latitude, longitude, altitude, timestamp) VALUES (?, ?, ?, ?)'
+        ).bind(lat, lng, alt, timestamp).run();
+
+        return "Added";
     }
 
     async updateLocation(id: number, lat: number, lng: number): Promise<boolean> {
