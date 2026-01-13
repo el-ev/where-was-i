@@ -179,13 +179,7 @@ export class EditManager {
 
             div.querySelector('.btn-cancel')?.addEventListener('click', (e) => {
                 leaflet.DomEvent.stop(e as any);
-                marker.setLatLng([startLat, startLng]);
-                updateEdges(marker.getLatLng());
-                if (this.activeConfirmTooltip && this.mapManager.map) {
-                    this.mapManager.map.removeLayer(this.activeConfirmTooltip);
-                    this.activeConfirmTooltip = null;
-                }
-                marker.openPopup();
+                this.exitEditMode();
             });
 
             if (!this.activeConfirmTooltip) {
