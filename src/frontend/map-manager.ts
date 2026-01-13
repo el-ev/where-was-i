@@ -1,5 +1,7 @@
 const leaflet = (globalThis as any).L as unknown as typeof import('leaflet');
 
+const MAX_AMBIGUITY_CANDIDATES = 10;
+
 export class MapManager {
     map: L.Map | null = null;
     currentPolyline: L.Polyline | null = null;
@@ -69,7 +71,8 @@ export class MapManager {
             const dist = clickPoint.distanceTo(pt);
             return { loc, dist, idx };
         }).filter(result => result.dist < 20)
-            .sort((a, b) => a.dist - b.dist);
+            .sort((a, b) => a.dist - b.dist)
+            .slice(0, MAX_AMBIGUITY_CANDIDATES);
 
         if (candidates.length > 0) {
             this.onPointSelect(candidates, latlng);
