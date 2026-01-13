@@ -22,5 +22,16 @@
 	"build": {
 		"command": "sh -c \"tsc -p tsconfig.frontend.json || true\"",
 		"watch_dir": "src"
+	},
+	"r2_buckets": [
+		{
+			"binding": "PACKS_BUCKET",
+			"bucket_name": "where-was-i-packs"
+		}
+	],
+	"triggers": {
+		"crons": [
+			"0 * * * *"
+		]
 	}
 }

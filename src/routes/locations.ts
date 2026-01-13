@@ -8,7 +8,7 @@ const locations = new Hono<{ Bindings: Env }>();
 locations.get('/export/gpx', authMiddleware('read'), async (c) => {
     const logger = (c as any).logger;
     const query = c.req.query();
-    const service = new LocationService(c.env.DB);
+    const service = new LocationService(c.env.DB, c.env.PACKS_BUCKET);
 
     const locationQueryParams = locationQuerySchema.safeParse(query);
     if (!locationQueryParams.success) {
@@ -50,7 +50,7 @@ locations.get('/export/gpx', authMiddleware('read'), async (c) => {
 locations.get('/', authMiddleware('read'), async (c) => {
     const logger = (c as any).logger;
     const query = c.req.query();
-    const service = new LocationService(c.env.DB);
+    const service = new LocationService(c.env.DB, c.env.PACKS_BUCKET);
 
     logger?.debug('Processing locations query', { action: 'locations_query', query_params: query });
 
@@ -59,7 +59,6 @@ locations.get('/', authMiddleware('read'), async (c) => {
         return c.json({ error: 'Invalid query parameters', details: locationQueryParams.error.flatten() }, 400);
     }
 
-    // Get token record from auth middleware
     const tokenRecord = (c as any).tokenRecord as TokenRecord;
 
     const tokenRules = {
@@ -113,7 +112,6 @@ locations.get('/last', authMiddleware('read'), async (c) => {
     const limitParam = c.req.query('limit');
     const limit = limitParam ? Math.max(1, Math.min(1000, Math.floor(Number(limitParam)))) : 1;
 
-    // Get token record from auth middleware
     const tokenRecord = (c as any).tokenRecord as TokenRecord;
     const tokenRules = {
         startTime: tokenRecord.available_start_time,

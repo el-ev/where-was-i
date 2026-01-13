@@ -6,6 +6,7 @@ declare namespace Cloudflare {
         INIT_SECRET: string;
         DB: D1Database;
         THUNDERFOREST_API_KEY: string;
+        PACKS_BUCKET: R2Bucket;
     }
 }
 interface Env extends Cloudflare.Env { }
