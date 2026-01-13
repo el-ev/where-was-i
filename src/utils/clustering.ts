@@ -1,16 +1,28 @@
 import { LocationRecord } from '../schema';
 
+const DEG_TO_RAD = Math.PI / 180;
+const R = 6371000;
+
 export function crowFlyDist(lat1: number, lng1: number, lat2: number, lng2: number): number {
-    const toRad = (deg: number) => (deg * Math.PI) / 180;
-    const R = 6371000;
-    const dLat = toRad(lat2 - lat1);
-    const dLng = toRad(lng2 - lng1);
+    const dLat = (lat2 - lat1) * DEG_TO_RAD;
+    const dLng = (lng2 - lng1) * DEG_TO_RAD;
     const a =
         Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+        Math.cos(lat1 * DEG_TO_RAD) * Math.cos(lat2 * DEG_TO_RAD) *
         Math.sin(dLng / 2) * Math.sin(dLng / 2);
-    const c2 = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function fastDist(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const x = (lng2 - lng1) * DEG_TO_RAD * Math.cos((lat1 + lat2) * 0.5 * DEG_TO_RAD);
+    const y = (lat2 - lat1) * DEG_TO_RAD;
+    return R * Math.sqrt(x * x + y * y);
+}
+
+interface CachedPoint {
+    record: LocationRecord;
+    lat: number;
+    lng: number;
 }
 
 export function clusterLocations(
@@ -22,90 +34,85 @@ export function clusterLocations(
     if (maxDist === 0) {
         return records;
     }
-    if (records.length === 0) {
+    const n = records.length;
+    if (n === 0) {
         return [];
     }
 
+    const points: CachedPoint[] = new Array(n);
+    for (let i = 0; i < n; i++) {
+        const r = records[i];
+        points[i] = {
+            record: r,
+            lat: Number(r.latitude),
+            lng: Number(r.longitude)
+        };
+    }
+
     const representatives: LocationRecord[] = [];
-    let cluster: LocationRecord[] = [];
+    let clusterStart = 0;
+    let clusterEnd = 0;
     let sumLat = 0;
     let sumLng = 0;
 
     const finalizeCluster = () => {
-        if (cluster.length === 0) return;
+        if (clusterEnd <= clusterStart) return;
 
-        const centroidLat = sumLat / cluster.length;
-        const centroidLng = sumLng / cluster.length;
+        const count = clusterEnd - clusterStart;
+        const centroidLat = sumLat / count;
+        const centroidLng = sumLng / count;
 
-        let bestPoint = cluster[0];
-        let bestDist = crowFlyDist(
-            centroidLat,
-            centroidLng,
-            Number(bestPoint.latitude),
-            Number(bestPoint.longitude)
-        );
+        let bestIdx = clusterStart;
+        let bestDist = fastDist(centroidLat, centroidLng, points[clusterStart].lat, points[clusterStart].lng);
 
-        for (let i = 1; i < cluster.length; i++) {
-            const p = cluster[i];
-            const d = crowFlyDist(centroidLat, centroidLng, Number(p.latitude), Number(p.longitude));
+        for (let i = clusterStart + 1; i < clusterEnd; i++) {
+            const d = fastDist(centroidLat, centroidLng, points[i].lat, points[i].lng);
             if (d < bestDist) {
                 bestDist = d;
-                bestPoint = p;
+                bestIdx = i;
             }
         }
 
-        representatives.push(bestPoint);
-
-        cluster = [];
-        sumLat = 0;
-        sumLng = 0;
+        representatives.push(points[bestIdx].record);
     };
 
-    for (let i = 0; i < records.length; i++) {
-        const p = records[i];
-        const plat = Number(p.latitude);
-        const plng = Number(p.longitude);
+    sumLat = points[0].lat;
+    sumLng = points[0].lng;
+    clusterEnd = 1;
 
-        if (cluster.length === 0) {
-            cluster.push(p);
-            sumLat = plat;
-            sumLng = plng;
-            continue;
-        }
-
-        const centroidLat = sumLat / cluster.length;
-        const centroidLng = sumLng / cluster.length;
-        const d = crowFlyDist(centroidLat, centroidLng, plat, plng);
+    for (let i = 1; i < n; i++) {
+        const p = points[i];
+        const count = clusterEnd - clusterStart;
+        const centroidLat = sumLat / count;
+        const centroidLng = sumLng / count;
+        const d = fastDist(centroidLat, centroidLng, p.lat, p.lng);
 
         if (d < maxDist) {
-            cluster.push(p);
-            sumLat += plat;
-            sumLng += plng;
+            sumLat += p.lat;
+            sumLng += p.lng;
+            clusterEnd++;
         } else {
-            const window = records.slice(i, i + windowSize);
+            // Count far points in window without creating new array
+            const windowEnd = Math.min(i + windowSize, n);
+            const windowLen = windowEnd - i;
             let farPoints = 0;
-            for (const futureP of window) {
-                if (
-                    crowFlyDist(
-                        centroidLat,
-                        centroidLng,
-                        Number(futureP.latitude),
-                        Number(futureP.longitude)
-                    ) >= maxDist
-                ) {
+
+            for (let j = i; j < windowEnd; j++) {
+                if (fastDist(centroidLat, centroidLng, points[j].lat, points[j].lng) >= maxDist) {
                     farPoints++;
                 }
             }
 
-            if (farPoints / window.length >= splitThreshold) {
+            if (farPoints / windowLen >= splitThreshold) {
                 finalizeCluster();
-                cluster.push(p);
-                sumLat = plat;
-                sumLng = plng;
+                clusterStart = i;
+                clusterEnd = i + 1;
+                sumLat = p.lat;
+                sumLng = p.lng;
             } else {
-                cluster.push(p);
-                sumLat += plat;
-                sumLng += plng;
+                sumLat += p.lat;
+                sumLng += p.lng;
+                clusterEnd++;
             }
         }
     }

@@ -13,10 +13,25 @@ export class MapManager {
 
     init(startLat: number, startLng: number) {
         this.map = leaflet.map('map').setView([startLat, startLng], 16);
-        leaflet.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 25,
-            attribution: '© OpenStreetMap contributors',
-        }).addTo(this.map);
+
+        const baseLayers = {
+            "OpenStreetMap": leaflet.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 25,
+                attribution: '© OpenStreetMap contributors',
+            }),
+            "OpenCycleMap": leaflet.tileLayer('/tiles/cycle/{z}/{x}/{y}', {
+                maxZoom: 25,
+                attribution: 'Data © OpenStreetMap contributors. Maps © Thunderforest'
+            }),
+            "Transport": leaflet.tileLayer('/tiles/transport/{z}/{x}/{y}', {
+                maxZoom: 25,
+                attribution: 'Data © OpenStreetMap contributors. Maps © Thunderforest'
+            }),
+            "None": leaflet.tileLayer('', { maxZoom: 25 }),
+        };
+
+        baseLayers.OpenStreetMap.addTo(this.map);
+        leaflet.control.layers(baseLayers, {}, { position: 'topleft' }).addTo(this.map);
 
         // Global click logger (debug)
         this.map.on('click', (e: L.LeafletMouseEvent) => {
